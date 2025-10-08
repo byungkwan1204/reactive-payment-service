@@ -2,8 +2,10 @@ package com.example.paymentservice.payment.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 
+import com.example.paymentservice.payment.adapter.out.persistent.exception.PaymentValidationException;
+import com.example.paymentservice.payment.adapter.out.web.toss.exception.PSPConfirmationException;
+import com.example.paymentservice.payment.adapter.out.web.toss.exception.TossPaymentError;
 import com.example.paymentservice.payment.application.port.in.CheckoutCommand;
 import com.example.paymentservice.payment.application.port.in.CheckoutUsecase;
 import com.example.paymentservice.payment.application.port.in.PaymentConfirmCommand;
@@ -15,8 +17,8 @@ import com.example.paymentservice.payment.domain.PSPConfirmationStatus;
 import com.example.paymentservice.payment.domain.PaymentConfirmationResult;
 import com.example.paymentservice.payment.domain.PaymentEvent;
 import com.example.paymentservice.payment.domain.PaymentExecutionResult;
-import com.example.paymentservice.payment.domain.PaymentExecutionResult.PaymentExecutionFailure;
 import com.example.paymentservice.payment.domain.PaymentExecutionResult.PaymentExtraDetails;
+import com.example.paymentservice.payment.domain.PaymentExecutionResult.PaymentFailure;
 import com.example.paymentservice.payment.domain.PaymentMethod;
 import com.example.paymentservice.payment.domain.PaymentStatus;
 import com.example.paymentservice.payment.domain.PaymentType;
@@ -34,7 +36,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import reactor.core.publisher.Mono;
 
 @SpringBootTest
@@ -45,17 +47,18 @@ class PaymentConfirmServiceTest {
     @Autowired
     CheckoutUsecase checkoutUsecase;
     @Autowired
-    PaymentStatusUpdatePort paymentStatusUpdatePort;
-    @Autowired
-    PaymentValidationPort paymentValidationPort;
-    @Autowired
     PaymentDatabaseHelper paymentDatabaseHelper;
-
-    @MockitoBean
-    PaymentExecutorPort mockPaymentExecutorPort;
-
     @Autowired
     PaymentConfirmService paymentConfirmService;
+    @Autowired
+    PaymentStatusUpdatePort paymentStatusUpdatePort;
+
+    @MockitoSpyBean
+    PaymentValidationPort paymentValidationPort;
+
+    @MockitoSpyBean
+    PaymentExecutorPort paymentExecutorPort;
+
 
     @BeforeEach
     void setUp() {
@@ -101,7 +104,7 @@ class PaymentConfirmServiceTest {
             .isFailure(false)
             .build();
 
-        Mockito.when(mockPaymentExecutorPort.execute(any(PaymentConfirmCommand.class)))
+        Mockito.when(paymentExecutorPort.execute(paymentConfirmCommand))
             .thenReturn(Mono.just(paymentExecutionResult));
 
         PaymentConfirmationResult paymentConfirmationResult =
@@ -111,7 +114,7 @@ class PaymentConfirmServiceTest {
         PaymentEvent paymentEvent = paymentDatabaseHelper.getPaymentEvent(orderId);
 
         assertThat(paymentConfirmationResult.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
-        assertTrue(paymentEvent.getPaymentOrders().stream().allMatch(order -> order.getPaymentStatus() == PaymentStatus.SUCCESS));
+        assertTrue(paymentEvent.isSuccess());
         assertThat(paymentEvent.getPaymentType()).isEqualTo(paymentExecutionResult.getExtraDetails().getType());
         assertThat(paymentEvent.getPaymentMethod()).isEqualTo(paymentExecutionResult.getExtraDetails().getMethod());
         assertThat(paymentEvent.getOrderName()).isEqualTo(paymentExecutionResult.getExtraDetails().getOrderName());
@@ -151,7 +154,7 @@ class PaymentConfirmServiceTest {
                               .approveAt(LocalDateTime.now())
                               .pspRawData("{}")
                               .build())
-            .failure(PaymentExecutionFailure.builder()
+            .failure(PaymentFailure.builder()
                          .errorCode("ERROR")
                          .message("Test Error")
                          .build())
@@ -161,7 +164,7 @@ class PaymentConfirmServiceTest {
             .isFailure(true)
             .build();
 
-        Mockito.when(mockPaymentExecutorPort.execute(any(PaymentConfirmCommand.class)))
+        Mockito.when(paymentExecutorPort.execute(paymentConfirmCommand))
             .thenReturn(Mono.just(paymentExecutionResult));
 
         PaymentConfirmationResult paymentConfirmationResult =
@@ -171,7 +174,7 @@ class PaymentConfirmServiceTest {
         PaymentEvent paymentEvent = paymentDatabaseHelper.getPaymentEvent(orderId);
 
         assertThat(paymentConfirmationResult.getStatus()).isEqualTo(PaymentStatus.FAILURE);
-        assertTrue(paymentEvent.getPaymentOrders().stream().allMatch(order -> order.getPaymentStatus() == PaymentStatus.FAILURE));
+        assertTrue(paymentEvent.isFailure());
     }
 
     @Test
@@ -207,7 +210,7 @@ class PaymentConfirmServiceTest {
                               .approveAt(LocalDateTime.now())
                               .pspRawData("{}")
                               .build())
-            .failure(PaymentExecutionFailure.builder()
+            .failure(PaymentFailure.builder()
                          .errorCode("ERROR")
                          .message("Test Error")
                          .build())
@@ -217,7 +220,7 @@ class PaymentConfirmServiceTest {
             .isFailure(false)
             .build();
 
-        Mockito.when(mockPaymentExecutorPort.execute(any(PaymentConfirmCommand.class)))
+        Mockito.when(paymentExecutorPort.execute(paymentConfirmCommand))
             .thenReturn(Mono.just(paymentExecutionResult));
 
         PaymentConfirmationResult paymentConfirmationResult =
@@ -227,6 +230,83 @@ class PaymentConfirmServiceTest {
         PaymentEvent paymentEvent = paymentDatabaseHelper.getPaymentEvent(orderId);
 
         assertThat(paymentConfirmationResult.getStatus()).isEqualTo(PaymentStatus.UNKNOWN);
-        assertTrue(paymentEvent.getPaymentOrders().stream().allMatch(order -> order.getPaymentStatus() == PaymentStatus.UNKNOWN));
+        assertTrue(paymentEvent.isUnknown());
+    }
+
+    @Test
+    void should_handle_PSPConfirmationException() {
+
+        String orderId = UUID.randomUUID().toString();
+
+        CheckoutCommand checloutCommand = CheckoutCommand.builder()
+            .cartId(1L)
+            .buyerId(1L)
+            .productIds(List.of(1L, 2L, 3L))
+            .idempotencyKey(orderId)
+            .build();
+
+        CheckoutResult checkoutResult = checkoutUsecase.checkout(checloutCommand).block();
+        assertThat(checkoutResult).isNotNull();
+
+        PaymentConfirmCommand paymentConfirmCommand =
+            PaymentConfirmCommand.builder()
+                .paymentKey(UUID.randomUUID().toString())
+                .orderId(orderId)
+                .amount(checkoutResult.getAmount())
+                .build();
+
+        PSPConfirmationException pspConfirmationException =
+            new PSPConfirmationException(
+                TossPaymentError.REJECT_ACCOUNT_PAYMENT.name(), TossPaymentError.REJECT_ACCOUNT_PAYMENT.getDescription(), false, true, false, false);
+
+
+        Mockito.when(paymentExecutorPort.execute(paymentConfirmCommand))
+            .thenReturn(Mono.error(pspConfirmationException));
+
+        PaymentConfirmationResult paymentConfirmationResult =
+            paymentConfirmService.confirm(paymentConfirmCommand).block();
+        assertThat(paymentConfirmationResult).isNotNull();
+
+        PaymentEvent paymentEvent = paymentDatabaseHelper.getPaymentEvent(orderId);
+
+        assertThat(paymentConfirmationResult.getStatus()).isEqualTo(PaymentStatus.FAILURE);
+        assertTrue(paymentEvent.isFailure());
+    }
+
+    @Test
+    void should_handle_PaymentValidationException() {
+
+        String orderId = UUID.randomUUID().toString();
+
+        CheckoutCommand checloutCommand = CheckoutCommand.builder()
+            .cartId(1L)
+            .buyerId(1L)
+            .productIds(List.of(1L, 2L, 3L))
+            .idempotencyKey(orderId)
+            .build();
+
+        CheckoutResult checkoutResult = checkoutUsecase.checkout(checloutCommand).block();
+        assertThat(checkoutResult).isNotNull();
+
+        PaymentConfirmCommand paymentConfirmCommand =
+            PaymentConfirmCommand.builder()
+                .paymentKey(UUID.randomUUID().toString())
+                .orderId(orderId)
+                .amount(checkoutResult.getAmount())
+                .build();
+
+        PaymentValidationException paymentValidationException = new PaymentValidationException("결제 유효성 검증에서 실패하였습니다.");
+
+        Mockito.when(paymentValidationPort.isValid(orderId, paymentConfirmCommand.getAmount()))
+            .thenReturn(Mono.error(paymentValidationException));
+
+        PaymentConfirmationResult paymentConfirmationResult =
+            paymentConfirmService.confirm(paymentConfirmCommand).block();
+
+        PaymentEvent paymentEvent = paymentDatabaseHelper.getPaymentEvent(orderId);
+
+        assertThat(paymentConfirmationResult).isNotNull();
+        assertThat(paymentConfirmationResult.getStatus()).isEqualTo(PaymentStatus.FAILURE);
+        assertTrue(paymentEvent.isFailure());
     }
 }

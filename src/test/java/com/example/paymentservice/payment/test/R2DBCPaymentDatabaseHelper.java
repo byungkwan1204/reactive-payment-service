@@ -59,7 +59,7 @@ public class R2DBCPaymentDatabaseHelper implements PaymentDatabaseHelper {
                                          .buyerId((Long) first.get("buyer_id"))
                                          .paymentKey(first.get("payment_key").toString())
                                          .paymentType(first.get("type") != null ? PaymentType.get(first.get("type").toString()) : null)
-                                         .paymentMethod(first.get("method") != null ? PaymentMethod.get(first.get("method").toString()) : null)
+                                         .paymentMethod(first.get("method") != null ? PaymentMethod.valueOf(first.get("method").toString()) : null)
                                          .approvedAt(first.get("approved_at") != null ? (LocalDateTime) first.get("approved_at") : null)
                                          .isPaymentDone((Boolean) first.get("is_payment_done"))
                                          .paymentOrders(results.stream()

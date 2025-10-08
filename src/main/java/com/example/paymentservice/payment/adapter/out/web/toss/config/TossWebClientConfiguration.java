@@ -1,7 +1,9 @@
 package com.example.paymentservice.payment.adapter.out.web.toss.config;
 
+import io.netty.handler.timeout.ReadTimeoutHandler;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -48,6 +50,10 @@ public class TossWebClientConfiguration {
     private ClientHttpConnector reactorClientHttpConnector() {
         ConnectionProvider provider = ConnectionProvider.builder("toss-payment").build();
 
-        return new ReactorClientHttpConnector(HttpClient.create(provider));
+        HttpClient clientBase = HttpClient.create(provider)
+            .doOnConnected(
+                connection -> connection.addHandlerLast(new ReadTimeoutHandler(30, TimeUnit.SECONDS)));
+
+        return new ReactorClientHttpConnector(clientBase);
     }
 }

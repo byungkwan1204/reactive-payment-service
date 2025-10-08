@@ -1,6 +1,6 @@
 package com.example.paymentservice.payment.application.port.out;
 
-import com.example.paymentservice.payment.domain.PaymentExecutionResult.PaymentExecutionFailure;
+import com.example.paymentservice.payment.domain.PaymentExecutionResult.PaymentFailure;
 import com.example.paymentservice.payment.domain.PaymentExecutionResult.PaymentExtraDetails;
 import com.example.paymentservice.payment.domain.PaymentStatus;
 import lombok.Builder;
@@ -15,10 +15,10 @@ public class PaymentStatusUpdateCommand {
     private String orderId;
     private PaymentStatus status;
     private PaymentExtraDetails extraDetails = null;
-    private PaymentExecutionFailure failure = null;
+    private PaymentFailure failure = null;
 
     @Builder
-    public PaymentStatusUpdateCommand(String paymentKey, String orderId, PaymentStatus status, PaymentExtraDetails extraDetails, PaymentExecutionFailure failure) {
+    public PaymentStatusUpdateCommand(String paymentKey, String orderId, PaymentStatus status, PaymentExtraDetails extraDetails, PaymentFailure failure) {
         this.paymentKey = paymentKey;
         this.orderId = orderId;
         this.status = status;
@@ -42,7 +42,7 @@ public class PaymentStatusUpdateCommand {
         } else if (PaymentStatus.FAILURE == status) {
             if (failure == null) {
                 throw new IllegalArgumentException(
-                    "PaymentStatus 값이 FAILURE 라면 PaymentExecutionFailure 는 null 이 되면 안됩니다.");
+                    "PaymentStatus 값이 FAILURE 라면 PaymentFailure 는 null 이 되면 안됩니다.");
             }
         }
     }

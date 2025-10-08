@@ -1,6 +1,6 @@
 package com.example.paymentservice.payment.domain;
 
-import com.example.paymentservice.payment.domain.PaymentExecutionResult.PaymentExecutionFailure;
+import com.example.paymentservice.payment.domain.PaymentExecutionResult.PaymentFailure;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,18 +13,18 @@ import lombok.NoArgsConstructor;
 public class PaymentConfirmationResult {
 
     private PaymentStatus status;
-    private PaymentExecutionFailure failure;
+    private PaymentFailure failure;
     private String message;
 
     @Builder
-    public PaymentConfirmationResult(PaymentStatus status, PaymentExecutionFailure failure) {
+    public PaymentConfirmationResult(PaymentStatus status, PaymentFailure failure) {
         this.status = status;
         this.failure = failure;
 
         if (status == PaymentStatus.FAILURE) {
             if (failure == null) {
                 throw new IllegalArgumentException(
-                    "결제 상태 FAILURE 일 때 PaymentExecutionFailure 는 null 값이 될 수 없습니다.");
+                    "결제 상태 FAILURE 일 때 PaymentFailure 는 null 값이 될 수 없습니다.");
             }
         }
 

@@ -14,14 +14,14 @@ public class PaymentExecutionResult {
     private String paymentKey;
     private String orderId;
     private PaymentExtraDetails extraDetails = null;
-    private PaymentExecutionFailure failure;
+    private PaymentFailure failure;
     private Boolean isSuccess;
     private Boolean isFailure = null;
     private Boolean isUnknown;
     private Boolean isRetryable;
 
     @Builder
-    public PaymentExecutionResult(String paymentKey, String orderId, PaymentExtraDetails extraDetails, PaymentExecutionFailure failure, Boolean isSuccess, Boolean isFailure, Boolean isUnknown, Boolean isRetryable) {
+    public PaymentExecutionResult(String paymentKey, String orderId, PaymentExtraDetails extraDetails, PaymentFailure failure, Boolean isSuccess, Boolean isFailure, Boolean isUnknown, Boolean isRetryable) {
         this.paymentKey = paymentKey;
         this.orderId = orderId;
         this.extraDetails = extraDetails;
@@ -70,7 +70,7 @@ public class PaymentExecutionResult {
     @Getter @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class PaymentExecutionFailure {
+    public static class PaymentFailure {
 
         private String errorCode;
         private String message;

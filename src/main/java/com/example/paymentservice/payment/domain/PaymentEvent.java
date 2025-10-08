@@ -39,4 +39,16 @@ public class PaymentEvent {
     public boolean isPaymentDone() {
         return isPaymentDone;
     }
+
+    public boolean isSuccess() {
+        return this.paymentOrders.stream().allMatch(order -> PaymentStatus.SUCCESS == order.getPaymentStatus());
+    }
+
+    public boolean isFailure() {
+        return this.paymentOrders.stream().allMatch(order -> PaymentStatus.FAILURE == order.getPaymentStatus());
+    }
+
+    public boolean isUnknown() {
+        return this.paymentOrders.stream().allMatch(order -> PaymentStatus.UNKNOWN == order.getPaymentStatus());
+    }
 }
