@@ -11,7 +11,7 @@ import com.example.paymentservice.payment.application.port.out.PaymentExecutorPo
 import com.example.paymentservice.payment.application.port.out.PaymentStatusUpdatePort;
 import com.example.paymentservice.payment.application.port.out.PaymentValidationPort;
 import com.example.paymentservice.payment.domain.CheckoutResult;
-import com.example.paymentservice.payment.domain.PGConfirmationStatus;
+import com.example.paymentservice.payment.domain.PSPConfirmationStatus;
 import com.example.paymentservice.payment.domain.PaymentConfirmationResult;
 import com.example.paymentservice.payment.domain.PaymentEvent;
 import com.example.paymentservice.payment.domain.PaymentExecutionResult;
@@ -63,7 +63,7 @@ class PaymentConfirmServiceTest {
     }
 
     @Test
-    void should_be_marked_as_SUCCESS_if_Payment_Confirmation_success_in_PG() {
+    void should_be_marked_as_SUCCESS_if_Payment_Confirmation_success_in_PSP() {
         String orderId = UUID.randomUUID().toString();
 
         CheckoutCommand checloutCommand = CheckoutCommand.builder()
@@ -91,9 +91,9 @@ class PaymentConfirmServiceTest {
                               .method(PaymentMethod.EASY_PAY)
                               .totalAmount(paymentConfirmCommand.getAmount())
                               .orderName("test_order_name")
-                              .pgConfirmationStatus(PGConfirmationStatus.DONE)
+                              .pspConfirmationStatus(PSPConfirmationStatus.DONE)
                               .approveAt(LocalDateTime.now())
-                              .pgRawData("{}")
+                              .pspRawData("{}")
                               .build())
             .isSuccess(true)
             .isRetryable(false)
@@ -119,7 +119,7 @@ class PaymentConfirmServiceTest {
     }
 
     @Test
-    void should_be_marked_as_FAILURE_if_Payment_Confirmation_fails_on_PG() {
+    void should_be_marked_as_FAILURE_if_Payment_Confirmation_fails_on_PSP() {
         String orderId = UUID.randomUUID().toString();
 
         CheckoutCommand checloutCommand = CheckoutCommand.builder()
@@ -147,9 +147,9 @@ class PaymentConfirmServiceTest {
                               .method(PaymentMethod.EASY_PAY)
                               .totalAmount(paymentConfirmCommand.getAmount())
                               .orderName("test_order_name")
-                              .pgConfirmationStatus(PGConfirmationStatus.DONE)
+                              .pspConfirmationStatus(PSPConfirmationStatus.DONE)
                               .approveAt(LocalDateTime.now())
-                              .pgRawData("{}")
+                              .pspRawData("{}")
                               .build())
             .failure(PaymentExecutionFailure.builder()
                          .errorCode("ERROR")
@@ -203,9 +203,9 @@ class PaymentConfirmServiceTest {
                               .method(PaymentMethod.EASY_PAY)
                               .totalAmount(paymentConfirmCommand.getAmount())
                               .orderName("test_order_name")
-                              .pgConfirmationStatus(PGConfirmationStatus.DONE)
+                              .pspConfirmationStatus(PSPConfirmationStatus.DONE)
                               .approveAt(LocalDateTime.now())
-                              .pgRawData("{}")
+                              .pspRawData("{}")
                               .build())
             .failure(PaymentExecutionFailure.builder()
                          .errorCode("ERROR")

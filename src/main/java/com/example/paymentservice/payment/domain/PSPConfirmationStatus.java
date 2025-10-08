@@ -6,7 +6,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum PGConfirmationStatus {
+public enum PSPConfirmationStatus {
 
     DONE("완료"),
     CANCELED("승인된 결제가 취소된 상태"),
@@ -19,12 +19,12 @@ public enum PGConfirmationStatus {
 
     private final String description;
 
-    public static PGConfirmationStatus get(String status) {
+    public static PSPConfirmationStatus get(String status) {
         return Arrays.stream(values())
             .filter(value -> value.name().equals(status))
             .findFirst()
             .orElseThrow(
                 () -> new IllegalArgumentException(
-                    String.format("PG 승인 상태 (status: %s) 는 올바르지 않은 상태입니다.", status)));
+                    String.format("PSP 승인 상태 (status: %s) 는 올바르지 않은 상태입니다.", status)));
     }
 }

@@ -62,9 +62,9 @@ public class PaymentExecutionResult {
         private PaymentMethod method;
         private LocalDateTime approveAt;
         private String orderName;
-        private PGConfirmationStatus pgConfirmationStatus;
+        private PSPConfirmationStatus pspConfirmationStatus;
         private Long totalAmount;
-        private String pgRawData;
+        private String pspRawData;
     }
 
     @Getter @Builder

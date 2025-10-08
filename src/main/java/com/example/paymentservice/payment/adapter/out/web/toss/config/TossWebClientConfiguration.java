@@ -20,8 +20,8 @@ import reactor.netty.resources.ConnectionProvider;
 @Configuration
 public class TossWebClientConfiguration {
 
-    @Value("${PG.toss.url}") private String baseUrl;
-    @Value("${PG.toss.secretKey}") private String secretKey;
+    @Value("${PSP.toss.url}") private String baseUrl;
+    @Value("${PSP.toss.secretKey}") private String secretKey;
 
     @Bean
     public WebClient tosPaymentWebClient() {

@@ -2,7 +2,7 @@ package com.example.paymentservice.payment.adapter.out.web.toss.executor;
 
 import com.example.paymentservice.payment.adapter.out.web.toss.response.TossPaymentConfirmationResponse;
 import com.example.paymentservice.payment.application.port.in.PaymentConfirmCommand;
-import com.example.paymentservice.payment.domain.PGConfirmationStatus;
+import com.example.paymentservice.payment.domain.PSPConfirmationStatus;
 import com.example.paymentservice.payment.domain.PaymentExecutionResult;
 import com.example.paymentservice.payment.domain.PaymentExecutionResult.PaymentExtraDetails;
 import com.example.paymentservice.payment.domain.PaymentMethod;
@@ -58,9 +58,9 @@ public class TossPaymentExecutor implements PaymentExecutor {
                                            .type(PaymentType.get(response.getType()))
                                            .method(PaymentMethod.get(response.getMethod()))
                                            .approveAt(LocalDateTime.parse(response.getApprovedAt(), DateTimeFormatter.ISO_OFFSET_DATE_TIME))
-                                           .pgRawData(response.toString())
+                                           .pspRawData(response.toString())
                                            .orderName(response.getOrderName())
-                                           .pgConfirmationStatus(PGConfirmationStatus.get(response.getStatus()))
+                                           .pspConfirmationStatus(PSPConfirmationStatus.get(response.getStatus()))
                                            .totalAmount((long) response.getTotalAmount())
                                            .build())
                          .isSuccess(true)
