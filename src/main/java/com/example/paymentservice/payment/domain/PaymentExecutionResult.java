@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Data
@@ -54,7 +53,7 @@ public class PaymentExecutionResult {
     }
 
     // 결제 상세 정보 클래스
-    @Getter @Builder
+    @Data @Builder
     @AllArgsConstructor
     @NoArgsConstructor
     public static class PaymentExtraDetails {
@@ -67,7 +66,7 @@ public class PaymentExecutionResult {
         private String pspRawData;
     }
 
-    @Getter @Builder
+    @Data @Builder
     @AllArgsConstructor
     @NoArgsConstructor
     public static class PaymentFailure {

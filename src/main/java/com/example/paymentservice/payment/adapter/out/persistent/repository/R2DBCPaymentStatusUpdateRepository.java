@@ -168,7 +168,7 @@ public class R2DBCPaymentStatusUpdateRepository implements PaymentStatusUpdateRe
     private Mono<Boolean> updatePaymentStatusToUnknown(PaymentStatusUpdateCommand command) {
         return selectPaymentOrderStatus(command.getOrderId())
             .collectList()
-            .flatMap(it -> insertPaymentHistory(it, command.getStatus(), "UNKNOWN"))
+            .flatMap(it -> insertPaymentHistory(it, command.getStatus(), command.getFailure().toString()))
             .then(updatePaymentOrderStatus(command.getOrderId(), command.getStatus()))
             .then(incrementPaymentOrderFailedCount(command))
             .as(transactionalOperator::transactional)

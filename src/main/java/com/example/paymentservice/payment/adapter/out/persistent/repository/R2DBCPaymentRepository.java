@@ -1,12 +1,20 @@
 package com.example.paymentservice.payment.adapter.out.persistent.repository;
 
+import com.example.paymentservice.payment.adapter.out.persistent.util.MySQLDateTimeFormatter;
 import com.example.paymentservice.payment.domain.PaymentEvent;
+import com.example.paymentservice.payment.domain.PaymentStatus;
+import com.example.paymentservice.payment.domain.PendingPaymentEvent;
+import com.example.paymentservice.payment.domain.PendingPaymentOrder;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.reactive.TransactionalOperator;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -36,6 +44,15 @@ public class R2DBCPaymentRepository implements PaymentRepository {
     (payment_event_id, seller_id, order_id, product_id, amount, payment_order_status) VALUES %s
     """;
 
+    private static final String SELECT_PENDING_PAYMENT_QUERY = """
+                                                                SELECT pe.id as payment_event_id, pe.payment_key, pe.order_id, po.id as payment_order_id, po.payment_order_status, po.amount, po.failed_count, po.threshold
+                                                                FROM payment_events pe 
+                                                                INNER JOIN payment_orders po ON po.payment_event_id = pe.id
+                                                                WHERE (po.payment_order_status = 'UNKNOWN' OR po.payment_order_status = 'EXECUTING' AND po.updated_at <= :updatedAt - INTERVAL 3 MINUTE)
+                                                                AND po.failed_count < po.threshold
+                                                                LIMIT 10
+                                                                """;
+
     @Override
     public Mono<Void> save(PaymentEvent paymentEvent) {
         return insertPaymentEvent(paymentEvent)
@@ -43,6 +60,37 @@ public class R2DBCPaymentRepository implements PaymentRepository {
             .flatMap(paymentEventId -> insertPaymentOrders(paymentEvent, paymentEventId))
             .as(transactionalOperator::transactional)   // 해당되는 쿼리들을 하나의 트랜잭션으로 묶는다.
             .then();
+    }
+
+    @Override
+    public Flux<PendingPaymentEvent> getPendingPayments() {
+        return databaseClient.sql(SELECT_PENDING_PAYMENT_QUERY)
+            .bind("updatedAt", LocalDateTime.now().format(MySQLDateTimeFormatter.formatter))
+            .fetch()
+            .all()
+            .groupBy(row -> (Long) row.get("payment_event_id"))
+            .flatMap(groupedFlex ->
+                groupedFlex.collectList().map(results -> {
+
+                    Map<String, Object> first = results.get(0);
+
+                    return PendingPaymentEvent.builder()
+                        .paymentEventId((Long) groupedFlex.key())
+                        .paymentKey(first.get("payment_key").toString())
+                        .orderId(first.get("order_id").toString())
+                        .pendingPaymentOrders(
+                            results.stream()
+                                .map(r ->
+                                         PendingPaymentOrder.builder()
+                                             .paymentOrderId((Long) r.get("payment_order_id"))
+                                             .status(PaymentStatus.get((String) r.get("payment_order_status")))
+                                             .amount(((BigDecimal) r.get("amount")).longValue())
+                                             .failedCount((Byte) r.get("failed_count"))
+                                             .threshold((Byte) r.get("threshold"))
+                                             .build())
+                                .toList())
+                        .build();
+                }));
     }
 
     private Mono<Long> insertPaymentEvent(PaymentEvent paymentEvent) {

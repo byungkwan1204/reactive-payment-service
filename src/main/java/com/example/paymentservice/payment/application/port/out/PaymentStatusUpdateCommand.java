@@ -1,5 +1,6 @@
 package com.example.paymentservice.payment.application.port.out;
 
+import com.example.paymentservice.payment.domain.PaymentExecutionResult;
 import com.example.paymentservice.payment.domain.PaymentExecutionResult.PaymentFailure;
 import com.example.paymentservice.payment.domain.PaymentExecutionResult.PaymentExtraDetails;
 import com.example.paymentservice.payment.domain.PaymentStatus;
@@ -45,5 +46,15 @@ public class PaymentStatusUpdateCommand {
                     "PaymentStatus 값이 FAILURE 라면 PaymentFailure 는 null 이 되면 안됩니다.");
             }
         }
+    }
+
+    public static PaymentStatusUpdateCommand ofExecutionResult(PaymentExecutionResult paymentExecutionResult) {
+        return PaymentStatusUpdateCommand.builder()
+            .paymentKey(paymentExecutionResult.getPaymentKey())
+            .orderId(paymentExecutionResult.getOrderId())
+            .status(paymentExecutionResult.paymentStatus())
+            .extraDetails(paymentExecutionResult.getExtraDetails())
+            .failure(paymentExecutionResult.getFailure())
+            .build();
     }
 }
