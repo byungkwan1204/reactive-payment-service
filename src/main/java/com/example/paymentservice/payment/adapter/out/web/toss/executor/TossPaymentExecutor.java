@@ -30,8 +30,8 @@ public class TossPaymentExecutor implements PaymentExecutor {
 
     private final WebClient tossPaymentWebClient;
 
-//    private static final String uri = "/v1/payments/confirm";
-    private static final String uri = "/v1/payments/key-in";
+    private static final String uri = "/v1/payments/confirm";
+//    private static final String uri = "/v1/payments/key-in";
 
     @Override
     public Mono<PaymentExecutionResult> execute(PaymentConfirmCommand command) {

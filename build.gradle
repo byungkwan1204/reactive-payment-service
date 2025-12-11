@@ -56,4 +56,5 @@ dependencyManagement {
 tasks.named('test') {
     useJUnitPlatform()
 //    excludeTags("TooLongTime")
+//    excludeTags("ExternalIntegration")
 }

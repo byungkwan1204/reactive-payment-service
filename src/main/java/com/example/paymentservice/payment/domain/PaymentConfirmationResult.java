@@ -1,6 +1,7 @@
 package com.example.paymentservice.payment.domain;
 
 import com.example.paymentservice.payment.domain.PaymentExecutionResult.PaymentFailure;
+import java.util.Objects;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,6 +23,7 @@ public class PaymentConfirmationResult {
         this.failure = failure;
 
         if (status == PaymentStatus.FAILURE) {
+            Objects.requireNonNull(failure);
             if (failure == null) {
                 throw new IllegalArgumentException(
                     "결제 상태 FAILURE 일 때 PaymentFailure 는 null 값이 될 수 없습니다.");

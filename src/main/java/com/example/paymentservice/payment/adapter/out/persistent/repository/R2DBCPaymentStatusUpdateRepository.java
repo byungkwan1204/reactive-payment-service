@@ -2,6 +2,7 @@ package com.example.paymentservice.payment.adapter.out.persistent.repository;
 
 import com.example.paymentservice.payment.adapter.out.persistent.exception.PaymentAlreadyProcessedException;
 import com.example.paymentservice.payment.application.port.out.PaymentStatusUpdateCommand;
+import com.example.paymentservice.payment.domain.PaymentEventMessagePublisher;
 import com.example.paymentservice.payment.domain.PaymentStatus;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,6 +22,8 @@ public class R2DBCPaymentStatusUpdateRepository implements PaymentStatusUpdateRe
 
     private final DatabaseClient databaseClient;
     private final TransactionalOperator transactionalOperator;
+    private final PaymentOutboxRepository paymentOutboxRepository;
+    private final PaymentEventMessagePublisher paymentEventMessagePublisher;
 
     private static final String SELECT_PAYMENT_ORDER_STATUS_QUERY = """
                                                                     SELECT id, payment_order_status FROM payment_orders
@@ -77,8 +80,6 @@ public class R2DBCPaymentStatusUpdateRepository implements PaymentStatusUpdateRe
             default -> throw new IllegalStateException(
                 String.format("결제 상태 (status: %s) 는 올바르지 않은 결제 상태입니다.", command.getStatus()));
         }
-
-
     }
 
     private Mono<List<Pair<Long, String>>> checkPreviousPaymentOrderStatus(String orderId) {
@@ -151,6 +152,8 @@ public class R2DBCPaymentStatusUpdateRepository implements PaymentStatusUpdateRe
             .flatMap(it -> insertPaymentHistory(it, command.getStatus(), "PAYMENT_CONFIRMATION_DONE"))
             .then(updatePaymentOrderStatus(command.getOrderId(), command.getStatus()))
             .then(updatePaymentEventExtraDetails(command))
+            .then(paymentOutboxRepository.insertOutbox(command))    // 이벤트에 실패한 메시지들을 스케줄링으로 재발행하기 위한 아웃박스 패턴
+            .flatMap(paymentEventMessagePublisher::publishEvent)    // 실시간 + 스케줄링 시 DB 부하 감소를 위해 즉시 발행
             .as(transactionalOperator::transactional)
             .thenReturn(true);
     }

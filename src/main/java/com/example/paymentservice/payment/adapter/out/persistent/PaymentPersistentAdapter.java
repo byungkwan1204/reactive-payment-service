@@ -1,15 +1,18 @@
 package com.example.paymentservice.payment.adapter.out.persistent;
 
 import com.example.paymentservice.common.PersistentAdapter;
+import com.example.paymentservice.payment.adapter.out.persistent.repository.PaymentOutboxRepository;
 import com.example.paymentservice.payment.adapter.out.persistent.repository.PaymentRepository;
 import com.example.paymentservice.payment.adapter.out.persistent.repository.PaymentStatusUpdateRepository;
 import com.example.paymentservice.payment.adapter.out.persistent.repository.PaymentValidationRepository;
+import com.example.paymentservice.payment.application.port.out.LoadPendingPaymentEventMessagePort;
 import com.example.paymentservice.payment.application.port.out.LoadPendingPaymentPort;
 import com.example.paymentservice.payment.application.port.out.PaymentStatusUpdateCommand;
 import com.example.paymentservice.payment.application.port.out.PaymentStatusUpdatePort;
 import com.example.paymentservice.payment.application.port.out.PaymentValidationPort;
 import com.example.paymentservice.payment.application.port.out.SavePaymentPort;
 import com.example.paymentservice.payment.domain.PaymentEvent;
+import com.example.paymentservice.payment.domain.PaymentEventMessage;
 import com.example.paymentservice.payment.domain.PendingPaymentEvent;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -17,11 +20,12 @@ import reactor.core.publisher.Mono;
 
 @PersistentAdapter
 @RequiredArgsConstructor
-public class PaymentPersistentAdapter implements SavePaymentPort, PaymentStatusUpdatePort, PaymentValidationPort, LoadPendingPaymentPort {
+public class PaymentPersistentAdapter implements SavePaymentPort, PaymentStatusUpdatePort, PaymentValidationPort, LoadPendingPaymentPort, LoadPendingPaymentEventMessagePort {
 
     private final PaymentRepository paymentRepository;
     private final PaymentStatusUpdateRepository paymentStatusUpdateRepository;
     private final PaymentValidationRepository paymentValidationRepository;
+    private final PaymentOutboxRepository paymentOutboxRepository;
 
     @Override
     public Mono<Void> save(PaymentEvent paymentEvent) {
@@ -46,5 +50,10 @@ public class PaymentPersistentAdapter implements SavePaymentPort, PaymentStatusU
     @Override
     public Flux<PendingPaymentEvent> getPendingPayments() {
         return paymentRepository.getPendingPayments();
+    }
+
+    @Override
+    public Flux<PaymentEventMessage> getPendingPaymentEventMessage() {
+        return paymentOutboxRepository.getPendingPaymentOutboxes();
     }
 }

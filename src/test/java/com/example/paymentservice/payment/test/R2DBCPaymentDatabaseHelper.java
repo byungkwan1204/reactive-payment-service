@@ -40,6 +40,10 @@ public class R2DBCPaymentDatabaseHelper implements PaymentDatabaseHelper {
                                                                      DELETE FROM payment_order_histories
                                                                      """;
 
+    private static final String DELETE_OUTBOX_QUERY = """
+                                                      DELETE FROM outboxes
+                                                      """;
+
     @Override
     public PaymentEvent getPaymentEvent(String orderId) {
         return Mono.from(databaseClient.sql(SELECT_PAYMENT_QUERY)
@@ -84,6 +88,7 @@ public class R2DBCPaymentDatabaseHelper implements PaymentDatabaseHelper {
         return deletePaymentOrderHistories()
             .then(deletePaymentOrders())
             .then(deletePaymentEvents())
+            .then(deleteOutboxes())
             .as(transactionalOperator::transactional)
             .then( );
     }
@@ -102,6 +107,12 @@ public class R2DBCPaymentDatabaseHelper implements PaymentDatabaseHelper {
 
     private Mono<Long> deletePaymentEvents() {
         return databaseClient.sql(DELETE_PAYMENT_EVENT_QUERY)
+            .fetch()
+            .rowsUpdated();
+    }
+
+    private Mono<Long> deleteOutboxes() {
+        return databaseClient.sql(DELETE_OUTBOX_QUERY)
             .fetch()
             .rowsUpdated();
     }

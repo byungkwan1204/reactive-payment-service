@@ -29,6 +29,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -308,5 +309,54 @@ class PaymentConfirmServiceTest {
         assertThat(paymentConfirmationResult).isNotNull();
         assertThat(paymentConfirmationResult.getStatus()).isEqualTo(PaymentStatus.FAILURE);
         assertTrue(paymentEvent.isFailure());
+    }
+
+    @Test
+    @Tag("ExternalIntegration")
+    void should_send_the_event_message_to_the_external_message_system_after_the_payment_confirmation_has_bean_successful() throws InterruptedException {
+
+        String orderId = UUID.randomUUID().toString();
+
+        CheckoutCommand checloutCommand = CheckoutCommand.builder()
+            .cartId(1L)
+            .buyerId(1L)
+            .productIds(List.of(1L, 2L, 3L))
+            .idempotencyKey(orderId)
+            .build();
+
+        CheckoutResult checkoutResult = checkoutUsecase.checkout(checloutCommand).block();
+        assertThat(checkoutResult).isNotNull();
+
+        PaymentConfirmCommand paymentConfirmCommand =
+            PaymentConfirmCommand.builder()
+                .paymentKey(UUID.randomUUID().toString())
+                .orderId(orderId)
+                .amount(checkoutResult.getAmount())
+                .build();
+
+        PaymentExecutionResult paymentExecutionResult = PaymentExecutionResult.builder()
+            .paymentKey(paymentConfirmCommand.getPaymentKey())
+            .orderId(paymentConfirmCommand.getOrderId())
+            .extraDetails(PaymentExtraDetails.builder()
+                              .type(PaymentType.NORMAL)
+                              .method(PaymentMethod.EASY_PAY)
+                              .totalAmount(paymentConfirmCommand.getAmount())
+                              .orderName("test_order_name")
+                              .pspConfirmationStatus(PSPConfirmationStatus.DONE)
+                              .approveAt(LocalDateTime.now())
+                              .pspRawData("{}")
+                              .build())
+            .isSuccess(true)
+            .isRetryable(false)
+            .isUnknown(false)
+            .isFailure(false)
+            .build();
+
+        Mockito.when(paymentExecutorPort.execute(paymentConfirmCommand))
+            .thenReturn(Mono.just(paymentExecutionResult));
+
+        paymentConfirmService.confirm(paymentConfirmCommand).block();
+
+        Thread.sleep(10000);
     }
 }
